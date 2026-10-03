@@ -8,6 +8,9 @@ import { StructureModule } from './modules/structure/structure.module.js';
 import { StudentModule } from './modules/students/student.module.js';
 import { StaffModule } from './modules/staff/staff.module.js';
 import { AdmissionModule } from './modules/admissions/admission.module.js';
+import { AttendanceModule } from './modules/attendance/attendance.module.js';
+import { TimetableModule } from './modules/timetable/timetable.module.js';
+import { CommunicationModule } from './modules/communication/communication.module.js';
 
 @Module({
   imports: [
@@ -20,6 +23,10 @@ import { AdmissionModule } from './modules/admissions/admission.module.js';
     StudentModule,
     StaffModule,
     AdmissionModule,
+    AttendanceModule,
+    TimetableModule,
+    CommunicationModule,
   ],
 })
 export class AppModule {}
+

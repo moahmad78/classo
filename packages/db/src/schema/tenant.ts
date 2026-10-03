@@ -529,6 +529,327 @@ export const studentApplications = pgTable(
   ]
 );
 
+// Student Attendance (ATT-01..05)
+export const studentAttendance = pgTable(
+  'student_attendance',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    studentId: uuid('student_id')
+      .references(() => students.id, { onDelete: 'cascade' })
+      .notNull(),
+    academicYearId: uuid('academic_year_id'),
+    classId: uuid('class_id')
+      .references(() => classes.id, { onDelete: 'set null' }),
+    sectionId: uuid('section_id')
+      .references(() => sections.id, { onDelete: 'set null' }),
+    batchId: uuid('batch_id')
+      .references(() => batches.id, { onDelete: 'set null' }),
+    date: varchar('date', { length: 10 }).notNull(), // YYYY-MM-DD
+    status: varchar('status', { length: 20 }).default('present').notNull(), // present, absent, late, leave, holiday
+    remarks: text('remarks'),
+    markedBy: uuid('marked_by'),
+    editedBy: uuid('edited_by'),
+    editedAt: timestamp('edited_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_stu_att_inst').on(table.instituteId),
+    index('idx_stu_att_inst_class_date').on(
+      table.instituteId,
+      table.classId,
+      table.sectionId,
+      table.date
+    ),
+    uniqueIndex('idx_stu_att_inst_student_date').on(
+      table.instituteId,
+      table.studentId,
+      table.date
+    ),
+  ]
+);
+
+// Staff Attendance (STF-02, STF-05..14)
+export const staffAttendance = pgTable(
+  'staff_attendance',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    staffId: uuid('staff_id')
+      .references(() => staff.id, { onDelete: 'cascade' })
+      .notNull(),
+    date: varchar('date', { length: 10 }).notNull(), // YYYY-MM-DD
+    checkInTime: timestamp('check_in_time', { withTimezone: true }),
+    checkOutTime: timestamp('check_out_time', { withTimezone: true }),
+    status: varchar('status', { length: 20 }).default('present').notNull(), // present, absent, late, half_day, leave, holiday
+    checkInStatus: varchar('check_in_status', { length: 20 }).default('accepted').notNull(), // accepted, flagged, rejected
+    checkOutStatus: varchar('check_out_status', { length: 20 }),
+    withinGeofence: boolean('within_geofence').default(true).notNull(),
+    geofenceDistanceMeters: integer('geofence_distance_meters'),
+    isMockLocation: boolean('is_mock_location').default(false).notNull(),
+    photoId: uuid('photo_id'),
+    reviewStatus: varchar('review_status', { length: 20 }).default('approved').notNull(), // pending, approved, rejected
+    reviewedBy: uuid('reviewed_by'),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    rejectionReason: text('rejection_reason'),
+    manualOverride: boolean('manual_override').default(false).notNull(),
+    overrideReason: text('override_reason'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_staff_att_inst').on(table.instituteId),
+    uniqueIndex('idx_staff_att_inst_staff_date').on(
+      table.instituteId,
+      table.staffId,
+      table.date
+    ),
+    index('idx_staff_att_inst_review').on(
+      table.instituteId,
+      table.date,
+      table.reviewStatus
+    ),
+  ]
+);
+
+// Staff Attendance Photos (STF-05, STF-08, STF-12, STF-14)
+export const staffAttendancePhotos = pgTable(
+  'staff_attendance_photos',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    staffId: uuid('staff_id')
+      .references(() => staff.id, { onDelete: 'cascade' })
+      .notNull(),
+    photoUrl: text('photo_url').notNull(),
+    thumbnailUrl: text('thumbnail_url'),
+    photoHash: varchar('photo_hash', { length: 128 }).notNull(),
+    exifStripped: boolean('exif_stripped').default(true).notNull(),
+    capturedAt: timestamp('captured_at', { withTimezone: true }).defaultNow().notNull(),
+    deviceInfo: text('device_info'),
+    userAgent: text('user_agent'),
+    ipAddress: varchar('ip_address', { length: 64 }),
+    retainedUntil: timestamp('retained_until', { withTimezone: true }).notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_staff_photos_inst').on(table.instituteId),
+    index('idx_staff_photos_staff').on(table.instituteId, table.staffId),
+    index('idx_staff_photos_hash').on(table.instituteId, table.photoHash),
+    index('idx_staff_photos_retained').on(table.instituteId, table.retainedUntil),
+  ]
+);
+
+// Consent Records (STF-12, DPDP Act)
+export const consentRecords = pgTable(
+  'consent_records',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: uuid('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    consentType: varchar('consent_type', { length: 64 }).notNull(), // selfie_attendance, terms, privacy
+    consentedAt: timestamp('consented_at', { withTimezone: true }).defaultNow().notNull(),
+    ipAddress: varchar('ip_address', { length: 64 }),
+    userAgent: text('user_agent'),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_consent_inst').on(table.instituteId),
+    index('idx_consent_user').on(table.instituteId, table.userId, table.consentType),
+  ]
+);
+
+// Timetables (TT-01..04)
+export const timetables = pgTable(
+  'timetables',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    academicYearId: uuid('academic_year_id'),
+    classId: uuid('class_id')
+      .references(() => classes.id, { onDelete: 'cascade' }),
+    sectionId: uuid('section_id')
+      .references(() => sections.id, { onDelete: 'cascade' }),
+    batchId: uuid('batch_id')
+      .references(() => batches.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    status: varchar('status', { length: 20 }).default('active').notNull(), // draft, active, archived
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_timetables_inst').on(table.instituteId),
+    index('idx_timetables_class').on(table.instituteId, table.classId, table.sectionId),
+  ]
+);
+
+// Timetable Slots (TT-01..04)
+export const timetableSlots = pgTable(
+  'timetable_slots',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    timetableId: uuid('timetable_id')
+      .references(() => timetables.id, { onDelete: 'cascade' })
+      .notNull(),
+    dayOfWeek: integer('day_of_week').notNull(), // 1 (Mon) .. 7 (Sun)
+    periodNumber: integer('period_number').notNull(),
+    startTime: varchar('start_time', { length: 8 }).notNull(), // HH:mm
+    endTime: varchar('end_time', { length: 8 }).notNull(), // HH:mm
+    subjectId: uuid('subject_id')
+      .references(() => subjects.id, { onDelete: 'cascade' })
+      .notNull(),
+    teacherId: uuid('teacher_id')
+      .references(() => staff.id, { onDelete: 'cascade' })
+      .notNull(),
+    roomNumber: varchar('room_number', { length: 50 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_slots_inst').on(table.instituteId),
+    index('idx_slots_timetable').on(table.instituteId, table.timetableId),
+    index('idx_slots_teacher_conflict').on(
+      table.instituteId,
+      table.teacherId,
+      table.dayOfWeek,
+      table.periodNumber
+    ),
+    index('idx_slots_room_conflict').on(
+      table.instituteId,
+      table.roomNumber,
+      table.dayOfWeek,
+      table.periodNumber
+    ),
+  ]
+);
+
+// Timetable Substitutions (TT-03)
+export const substitutions = pgTable(
+  'substitutions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    timetableSlotId: uuid('timetable_slot_id')
+      .references(() => timetableSlots.id, { onDelete: 'cascade' })
+      .notNull(),
+    date: varchar('date', { length: 10 }).notNull(), // YYYY-MM-DD
+    originalTeacherId: uuid('original_teacher_id')
+      .references(() => staff.id, { onDelete: 'cascade' })
+      .notNull(),
+    substituteTeacherId: uuid('substitute_teacher_id')
+      .references(() => staff.id, { onDelete: 'cascade' })
+      .notNull(),
+    reason: text('reason'),
+    status: varchar('status', { length: 20 }).default('assigned').notNull(), // assigned, notified, completed
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_substitutions_inst').on(table.instituteId),
+    index('idx_substitutions_date_sub').on(
+      table.instituteId,
+      table.date,
+      table.substituteTeacherId
+    ),
+  ]
+);
+
+// Notices (COM-01)
+export const notices = pgTable(
+  'notices',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    title: varchar('title', { length: 255 }).notNull(),
+    content: text('content').notNull(),
+    audienceType: varchar('audience_type', { length: 32 }).default('all').notNull(), // all, role, class, individual
+    targetAudience: jsonb('target_audience').$type<string[]>().default([]),
+    publishAt: timestamp('publish_at', { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    isPublished: boolean('is_published').default(true).notNull(),
+    attachments: jsonb('attachments').$type<{ name: string; url: string; size?: number }[]>().default([]),
+    readReceiptsEnabled: boolean('read_receipts_enabled').default(false).notNull(),
+    createdBy: uuid('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_notices_inst').on(table.instituteId),
+    index('idx_notices_published').on(table.instituteId, table.isPublished, table.publishAt),
+  ]
+);
+
+// Notice Reads (COM-01)
+export const noticeReads = pgTable(
+  'notice_reads',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    noticeId: uuid('notice_id')
+      .references(() => notices.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: uuid('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    readAt: timestamp('read_at', { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_notice_reads_inst').on(table.instituteId),
+    uniqueIndex('idx_notice_reads_user').on(table.instituteId, table.noticeId, table.userId),
+  ]
+);
+
+// Notifications (COM-05)
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: uuid('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    title: varchar('title', { length: 255 }).notNull(),
+    message: text('message').notNull(),
+    type: varchar('type', { length: 32 }).default('general').notNull(), // attendance, notice, reminder, general
+    link: varchar('link', { length: 255 }),
+    isRead: boolean('is_read').default(false).notNull(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_notifications_inst').on(table.instituteId),
+    index('idx_notifications_user_read').on(table.instituteId, table.userId, table.isRead),
+  ]
+);
+
 // Immutable Tenant Audit Log (PRD CC-05, ISO-05)
 export const auditLog = pgTable(
   'audit_log',

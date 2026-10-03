@@ -1,7 +1,7 @@
 import React from 'react';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'success' | 'danger' | 'warning' | 'neutral' | 'primary';
+  variant?: 'success' | 'danger' | 'warning' | 'neutral' | 'primary' | 'outline';
   icon?: React.ReactNode;
   children: React.ReactNode;
 }
@@ -19,7 +19,9 @@ export const Badge: React.FC<BadgeProps> = ({
     warning: 'bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]',
     primary: 'bg-[#F0FDFA] text-[#0F766E] border-[#CCFBF1]',
     neutral: 'bg-[#F3EFEA] text-[#1F2937] border-[#E5E0D8]',
+    outline: 'bg-transparent text-[#1F2937] border-[#E5E0D8]',
   };
+
 
   const defaultIcons = {
     success: (
@@ -47,7 +49,9 @@ export const Badge: React.FC<BadgeProps> = ({
         <circle cx="6" cy="6" r="2.5" fill="currentColor" />
       </svg>
     ),
+    outline: null,
   };
+
 
   return (
     <span

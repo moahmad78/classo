@@ -239,6 +239,28 @@ export const academicYears = pgTable(
   ]
 );
 
+// Campus Locations (PRD SET-06: Geofence for staff selfie attendance)
+export const campusLocations = pgTable(
+  'campus_locations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    latitude: varchar('latitude', { length: 32 }).notNull(),
+    longitude: varchar('longitude', { length: 32 }).notNull(),
+    radiusMeters: varchar('radius_meters', { length: 16 }).default('150').notNull(),
+    isActive: boolean('is_active').default(true).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('idx_campus_loc_inst_id').on(table.instituteId),
+  ]
+);
+
 // Immutable Tenant Audit Log (PRD CC-05, ISO-05)
 export const auditLog = pgTable(
   'audit_log',

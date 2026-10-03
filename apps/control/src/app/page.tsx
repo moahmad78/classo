@@ -100,9 +100,11 @@ export default function ControlCenterHome() {
                   Applications submitted via self-registration awaiting review
                 </p>
               </div>
-              <Button size="sm" variant="outline">
-                View Full Queue
-              </Button>
+              <a href="/approvals">
+                <Button size="sm" variant="outline">
+                  View Full Queue
+                </Button>
+              </a>
             </CardHeader>
 
             <div className="divide-y divide-[#E5E0D8]">

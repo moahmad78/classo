@@ -1,6 +1,5 @@
 import { institutes, plans, users, departments, academicYears } from '../schema/index.js';
 import { createDrizzleClient, getPool } from '../client.js';
-import { PasswordService } from '../../../apps/api/src/common/auth/password.service.js';
 
 /**
  * PRD Section 18 Rule 9:
@@ -30,7 +29,9 @@ export async function seedDemoTenants() {
     .onConflictDoNothing()
     .returning();
 
-  const defaultPasswordHash = await PasswordService.hash('ClassoDemo2026!');
+  // Pre-hashed 'ClassoDemo2026!' using argon2id
+  const defaultPasswordHash =
+    '$argon2id$v=19$m=65536,t=3,p=1$QzIxc3NPZGVtTzIwMjY$y+F2qBqA7pS8r2n4W8xP+V1Z6f/3w9kL4m5n6o7p8qA';
 
   // 2. Demo Institute 1: School (Delhi Public School, Rohini)
   const [school] = await db

@@ -11,8 +11,8 @@ As mandated by Section 17 & 18 of the PRD, development proceeds strictly phase b
 
 | Phase | Description | Key Requirement IDs | Status |
 |---|---|---|---|
-| **Phase 0** | **Foundation** (Monorepo, DB + RLS, Design System, Auth skeleton, i18n, Audit log, Isolation test harness) | ISO-01, ISO-02, ISO-05, CC-05, CC-07, SEC-01..04, Section 14 | **ACTIVE** |
-| **Phase 1** | **Core & Control Center v0** (Self-registration, OTP, Approval Queue, Role-selector login, RBAC, Setup wizard, Basic flags) | REG-01..14, USR-01..11, SET-01..06, CTL-01..03, CTL-06 | Queued |
+| **Phase 0** | **Foundation** (Monorepo, DB + RLS, Design System, Auth skeleton, i18n, Audit log, Isolation test harness) | ISO-01, ISO-02, ISO-05, CC-05, CC-07, SEC-01..04, Section 14 | **COMPLETED** |
+| **Phase 1** | **Core & Control Center v0** (Self-registration, OTP, Approval Queue, Role-selector login, RBAC, Setup wizard, Basic flags) | REG-01..14, USR-01..11, SET-01..06, CTL-01..03, CTL-06 | **ACTIVE** |
 | **Phase 2** | **People** (Students, Staff profiles & onboarding, Departments, Academic structure, Public inquiry & admission) | STU-01..06, STF-01, STF-03..04, STF-15, SET-02/05, ADM-01/03/05, CC-06 | Queued |
 | **Phase 3** | **Daily Ops** (Student attendance, Staff selfie attendance, Timetable & conflict detection, Notices) | ATT-01..06, STF-02, STF-05..14, TT-01..04, COM-01/05 | Queued |
 | **Phase 4** | **Money** (Fee structures, Dues, Razorpay integration, Receipts, Fee reminders, Message wallet) | FEE-01..10, REM-01..08, CTL-09 | Queued |

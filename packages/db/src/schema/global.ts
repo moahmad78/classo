@@ -185,3 +185,47 @@ export const featureFlags = pgTable('feature_flags', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Message Wallets (PRD CTL-09, REM-06)
+export const messageWallets = pgTable(
+  'message_wallets',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull()
+      .unique(),
+    creditsBalance: integer('credits_balance').default(500).notNull(), // Starter credits
+    currency: varchar('currency', { length: 8 }).default('INR').notNull(),
+    lowBalanceThreshold: integer('low_balance_threshold').default(100).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('idx_wallets_institute_id').on(table.instituteId),
+  ]
+);
+
+// Wallet Transactions (PRD CTL-09)
+export const walletTransactions = pgTable(
+  'wallet_transactions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    walletId: uuid('wallet_id')
+      .references(() => messageWallets.id, { onDelete: 'cascade' })
+      .notNull(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    amountCredits: integer('amount_credits').notNull(),
+    type: varchar('type', { length: 20 }).notNull(), // 'credit' | 'debit'
+    description: varchar('description', { length: 255 }).notNull(),
+    referenceId: varchar('reference_id', { length: 100 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_wallet_tx_inst').on(table.instituteId),
+    index('idx_wallet_tx_wallet').on(table.walletId),
+  ]
+);
+

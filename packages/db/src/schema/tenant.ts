@@ -850,6 +850,241 @@ export const notifications = pgTable(
   ]
 );
 
+// Fee Heads (FEE-01)
+export const feeHeads = pgTable(
+  'fee_heads',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 255 }).notNull(), // Tuition, Transport, Hostel, Exam, Lab
+    code: varchar('code', { length: 50 }).notNull(),
+    description: text('description'),
+    isRefundable: boolean('is_refundable').default(false).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_fee_heads_inst').on(table.instituteId),
+    uniqueIndex('idx_fee_heads_inst_code').on(table.instituteId, table.code),
+  ]
+);
+
+// Fee Structures (FEE-01)
+export const feeStructures = pgTable(
+  'fee_structures',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    academicYearId: uuid('academic_year_id'),
+    classId: uuid('class_id').references(() => classes.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 255 }).notNull(), // e.g. "Class 10 Annual Fee 2026-27"
+    totalAmountPaise: integer('total_amount_paise').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_fee_structures_inst').on(table.instituteId),
+    index('idx_fee_structures_class').on(table.instituteId, table.classId),
+  ]
+);
+
+// Fee Structure Items (FEE-01)
+export const feeStructureItems = pgTable(
+  'fee_structure_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    feeStructureId: uuid('fee_structure_id')
+      .references(() => feeStructures.id, { onDelete: 'cascade' })
+      .notNull(),
+    feeHeadId: uuid('fee_head_id')
+      .references(() => feeHeads.id, { onDelete: 'cascade' })
+      .notNull(),
+    amountPaise: integer('amount_paise').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_fee_struct_items_inst').on(table.instituteId),
+    index('idx_fee_struct_items_struct').on(table.instituteId, table.feeStructureId),
+  ]
+);
+
+// Student Fee Plans (FEE-02, FEE-03)
+export const studentFeePlans = pgTable(
+  'student_fee_plans',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    studentId: uuid('student_id')
+      .references(() => students.id, { onDelete: 'cascade' })
+      .notNull(),
+    academicYearId: uuid('academic_year_id'),
+    feeStructureId: uuid('fee_structure_id')
+      .references(() => feeStructures.id, { onDelete: 'cascade' })
+      .notNull(),
+    planType: varchar('plan_type', { length: 32 }).default('monthly').notNull(), // one_time, monthly, quarterly, custom
+    totalBasePaise: integer('total_base_paise').notNull(),
+    discountPaise: integer('discount_paise').default(0).notNull(),
+    discountReason: text('discount_reason'),
+    discountApprovedBy: uuid('discount_approved_by'),
+    netPayablePaise: integer('net_payable_paise').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_student_fee_plans_inst').on(table.instituteId),
+    index('idx_student_fee_plans_stu').on(table.instituteId, table.studentId),
+  ]
+);
+
+// Student Dues (FEE-02, FEE-06)
+export const studentDues = pgTable(
+  'student_dues',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    studentId: uuid('student_id')
+      .references(() => students.id, { onDelete: 'cascade' })
+      .notNull(),
+    studentFeePlanId: uuid('student_fee_plan_id')
+      .references(() => studentFeePlans.id, { onDelete: 'cascade' })
+      .notNull(),
+    installmentNumber: integer('installment_number').notNull(),
+    title: varchar('title', { length: 255 }).notNull(), // e.g. "Term 1 Tuition Due"
+    dueDate: varchar('due_date', { length: 10 }).notNull(), // YYYY-MM-DD
+    amountPaise: integer('amount_paise').notNull(),
+    finePaise: integer('fine_paise').default(0).notNull(),
+    paidAmountPaise: integer('paid_amount_paise').default(0).notNull(),
+    status: varchar('status', { length: 20 }).default('pending').notNull(), // pending, partial, paid, overdue
+    paymentLinkId: varchar('payment_link_id', { length: 100 }), // Razorpay payment link
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_student_dues_inst').on(table.instituteId),
+    index('idx_student_dues_stu').on(table.instituteId, table.studentId),
+    index('idx_student_dues_status').on(table.instituteId, table.status, table.dueDate),
+  ]
+);
+
+// Payments (FEE-04, FEE-06)
+export const payments = pgTable(
+  'payments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    studentId: uuid('student_id')
+      .references(() => students.id, { onDelete: 'cascade' })
+      .notNull(),
+    studentDueId: uuid('student_due_id')
+      .references(() => studentDues.id, { onDelete: 'set null' }),
+    receiptNo: varchar('receipt_no', { length: 64 }).notNull(),
+    amountPaidPaise: integer('amount_paid_paise').notNull(),
+    paymentMode: varchar('payment_mode', { length: 32 }).notNull(), // cash, cheque, upi, card, bank_transfer, razorpay
+    referenceNo: varchar('reference_no', { length: 100 }), // Cheque no, UTR, Bank transaction ref
+    paymentDate: timestamp('payment_date', { withTimezone: true }).defaultNow().notNull(),
+    collectedBy: uuid('collected_by'),
+    status: varchar('status', { length: 20 }).default('success').notNull(), // success, pending, failed, refunded
+    razorpayPaymentId: varchar('razorpay_payment_id', { length: 100 }),
+    razorpayOrderId: varchar('razorpay_order_id', { length: 100 }),
+    razorpaySignature: varchar('razorpay_signature', { length: 255 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_payments_inst').on(table.instituteId),
+    uniqueIndex('idx_payments_receipt_no').on(table.instituteId, table.receiptNo),
+    index('idx_payments_student').on(table.instituteId, table.studentId),
+  ]
+);
+
+// Receipts (FEE-05)
+export const receipts = pgTable(
+  'receipts',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    paymentId: uuid('payment_id')
+      .references(() => payments.id, { onDelete: 'cascade' })
+      .notNull(),
+    receiptNumber: varchar('receipt_number', { length: 64 }).notNull(),
+    isDuplicate: boolean('is_duplicate').default(false).notNull(),
+    reprintCount: integer('reprint_count').default(0).notNull(),
+    issuedAt: timestamp('issued_at', { withTimezone: true }).defaultNow().notNull(),
+    issuedBy: uuid('issued_by'),
+    pdfUrl: text('pdf_url'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_receipts_inst').on(table.instituteId),
+    uniqueIndex('idx_receipts_inst_number').on(table.instituteId, table.receiptNumber),
+  ]
+);
+
+// Reminder Rules (REM-01..04)
+export const reminderRules = pgTable(
+  'reminder_rules',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    offsetDays: integer('offset_days').notNull(), // -3, 0, 1, 3, 7
+    channels: jsonb('channels').$type<string[]>().default(['whatsapp', 'sms']).notNull(),
+    templateText: text('template_text').notNull(),
+    maxReminders: integer('max_reminders').default(3).notNull(),
+    isActive: boolean('is_active').default(true).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_reminder_rules_inst').on(table.instituteId),
+  ]
+);
+
+// Reminder Logs (REM-05, CTL-09)
+export const reminderLogs = pgTable(
+  'reminder_logs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    studentDueId: uuid('student_due_id')
+      .references(() => studentDues.id, { onDelete: 'cascade' })
+      .notNull(),
+    studentId: uuid('student_id')
+      .references(() => students.id, { onDelete: 'cascade' })
+      .notNull(),
+    channel: varchar('channel', { length: 32 }).notNull(), // 'whatsapp' | 'sms' | 'email'
+    recipientPhone: varchar('recipient_phone', { length: 20 }),
+    recipientEmail: varchar('recipient_email', { length: 255 }),
+    messageText: text('message_text').notNull(),
+    status: varchar('status', { length: 20 }).default('sent').notNull(), // queued, sent, delivered, failed
+    costCredits: integer('cost_credits').default(1).notNull(),
+    sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_reminder_logs_inst').on(table.instituteId),
+    index('idx_reminder_logs_due').on(table.instituteId, table.studentDueId),
+  ]
+);
+
 // Immutable Tenant Audit Log (PRD CC-05, ISO-05)
 export const auditLog = pgTable(
   'audit_log',

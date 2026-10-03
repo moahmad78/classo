@@ -15,8 +15,8 @@ As mandated by Section 17 & 18 of the PRD, development proceeds strictly phase b
 | **Phase 1** | **Core & Control Center v0** (Self-registration, OTP, Approval Queue, Role-selector login, RBAC, Setup wizard, Basic flags) | REG-01..14, USR-01..11, SET-01..06, CTL-01..03, CTL-06 | **COMPLETED** |
 | **Phase 2** | **People** (Students, Staff profiles & onboarding, Departments, Academic structure, Public inquiry & admission) | STU-01..06, STF-01, STF-03..04, STF-15, SET-02/05, ADM-01/03/05, CC-06 | **COMPLETED** |
 | **Phase 3** | **Daily Ops** (Student attendance, Staff selfie attendance, Timetable & conflict detection, Notices) | ATT-01..06, STF-02, STF-05..14, TT-01..04, COM-01/05 | **COMPLETED** |
-| **Phase 4** | **Money** (Fee structures, Dues, Razorpay integration, Receipts, Fee reminders, Message wallet) | FEE-01..10, REM-01..08, CTL-09 | **ACTIVE** |
-| **Phase 5** | **Academics** (Homework, Weekly tests, Question bank, Exams, Report cards) | HW-01..05, TST-01..08, EXM-01..08 | Queued |
+| **Phase 4** | **Money** (Fee structures, Dues, Razorpay integration, Receipts, Fee reminders, Message wallet) | FEE-01..10, REM-01..08, CTL-09 | **COMPLETED** |
+| **Phase 5** | **Academics** (Homework, Weekly tests, Question bank, Exams, Report cards) | HW-01..05, TST-01..08, EXM-01..08 | **ACTIVE** |
 | **Phase 6** | **Payroll** (Salary structures, Attendance/LOP calculation, Payslips, Salary reminders) | PAY-01..09 | Queued |
 | **Phase 7** | **Portals Polish** (Teacher/Student/Parent dashboards, Mobile UX, PWA) | CC-12, PERF-01..08, USR-11 | Queued |
 | **Phase 8** | **Communication & Billing** (Bulk messaging, Announcements, Subscriptions, Invoices) | COM-02..05, CTL-04/05/08 | Queued |

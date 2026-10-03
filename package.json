@@ -1,0 +1,25 @@
+{
+  "name": "classo-root",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Classo - Multi-tenant SaaS for Schools, Colleges, and Coaching Institutes",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run --workspaces --if-present build",
+    "test": "npm run --workspaces --if-present test",
+    "test:isolation": "npm run --workspace=@classo/db test:isolation",
+    "lint": "npm run --workspaces --if-present lint",
+    "dev:api": "npm run --workspace=@classo/api dev",
+    "dev:web": "npm run --workspace=@classo/web dev",
+    "dev:control": "npm run --workspace=@classo/control dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "tsx": "^4.19.3",
+    "@types/node": "^22.13.5",
+    "vitest": "^3.0.7"
+  }
+}

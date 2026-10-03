@@ -1,0 +1,19 @@
+{
+  "name": "@classo/worker",
+  "version": "1.1.0",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@classo/config": "*",
+    "@classo/db": "*",
+    "bullmq": "^5.41.6",
+    "ioredis": "^5.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "typescript": "^5.7.3"
+  }
+}

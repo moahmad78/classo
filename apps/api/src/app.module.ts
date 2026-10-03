@@ -4,6 +4,10 @@ import { RegistrationModule } from './modules/registration/registration.module.j
 import { AuthModule } from './modules/auth/auth.module.js';
 import { SetupModule } from './modules/setup/setup.module.js';
 import { ControlModule } from './modules/control/control.module.js';
+import { StructureModule } from './modules/structure/structure.module.js';
+import { StudentModule } from './modules/students/student.module.js';
+import { StaffModule } from './modules/staff/staff.module.js';
+import { AdmissionModule } from './modules/admissions/admission.module.js';
 
 @Module({
   imports: [
@@ -12,6 +16,10 @@ import { ControlModule } from './modules/control/control.module.js';
     AuthModule,
     SetupModule,
     ControlModule,
+    StructureModule,
+    StudentModule,
+    StaffModule,
+    AdmissionModule,
   ],
 })
 export class AppModule {}

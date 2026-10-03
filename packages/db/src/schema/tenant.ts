@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
   boolean,
+  integer,
   jsonb,
   index,
   uniqueIndex,
@@ -63,7 +64,7 @@ export const roles = pgTable(
       .references(() => institutes.id, { onDelete: 'cascade' })
       .notNull(),
     name: varchar('name', { length: 100 }).notNull(),
-    code: varchar('code', { length: 50 }).notNull(), // e.g. 'admin', 'teacher', 'custom_coordinator'
+    code: varchar('code', { length: 50 }).notNull(),
     description: text('description'),
     isSystem: boolean('is_system').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -76,7 +77,7 @@ export const roles = pgTable(
   ]
 );
 
-// Permissions table (PRD Section 8: module.action strings)
+// Permissions table (PRD Section 8)
 export const permissions = pgTable(
   'permissions',
   {
@@ -84,7 +85,7 @@ export const permissions = pgTable(
     instituteId: uuid('institute_id')
       .references(() => institutes.id, { onDelete: 'cascade' })
       .notNull(),
-    code: varchar('code', { length: 100 }).notNull(), // e.g. 'fees.collect', 'attendance.mark'
+    code: varchar('code', { length: 100 }).notNull(),
     module: varchar('module', { length: 50 }).notNull(),
     action: varchar('action', { length: 50 }).notNull(),
     description: text('description'),
@@ -111,7 +112,7 @@ export const rolePermissions = pgTable(
     permissionId: uuid('permission_id')
       .references(() => permissions.id, { onDelete: 'cascade' })
       .notNull(),
-    scope: varchar('scope', { length: 32 }).default('all').notNull(), // 'all' | 'assigned' | 'own'
+    scope: varchar('scope', { length: 32 }).default('all').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
@@ -124,7 +125,7 @@ export const rolePermissions = pgTable(
   ]
 );
 
-// User Sessions (PRD USR-05: view & revoke active sessions)
+// User Sessions
 export const sessions = pgTable(
   'sessions',
   {
@@ -148,7 +149,7 @@ export const sessions = pgTable(
   ]
 );
 
-// Invites table (PRD USR-03, REG-08, STF-15: 72-hour one-time links)
+// Invites table
 export const invites = pgTable(
   'invites',
   {
@@ -171,7 +172,7 @@ export const invites = pgTable(
   ]
 );
 
-// OTP Requests (PRD REG-03, USR-02)
+// OTP Requests
 export const otpRequests = pgTable(
   'otp_requests',
   {
@@ -179,9 +180,9 @@ export const otpRequests = pgTable(
     instituteId: uuid('institute_id')
       .references(() => institutes.id, { onDelete: 'cascade' })
       .notNull(),
-    identifier: varchar('identifier', { length: 255 }).notNull(), // email or phone
+    identifier: varchar('identifier', { length: 255 }).notNull(),
     otpHash: text('otp_hash').notNull(),
-    purpose: varchar('purpose', { length: 50 }).notNull(), // 'login' | 'reset_password' | 'parent_auth'
+    purpose: varchar('purpose', { length: 50 }).notNull(),
     attempts: jsonb('attempts').$type<{ count: number; max: number }>().default({
       count: 0,
       max: 5,
@@ -196,7 +197,7 @@ export const otpRequests = pgTable(
   ]
 );
 
-// Departments (PRD SET-05: Principal adds/edits/archives departments)
+// Departments (SET-05)
 export const departments = pgTable(
   'departments',
   {
@@ -217,7 +218,7 @@ export const departments = pgTable(
   ]
 );
 
-// Academic Years (PRD CC-03: Every academic record belongs to an academic year)
+// Academic Years (CC-03)
 export const academicYears = pgTable(
   'academic_years',
   {
@@ -225,7 +226,7 @@ export const academicYears = pgTable(
     instituteId: uuid('institute_id')
       .references(() => institutes.id, { onDelete: 'cascade' })
       .notNull(),
-    name: varchar('name', { length: 100 }).notNull(), // e.g. "2026-2027"
+    name: varchar('name', { length: 100 }).notNull(),
     startDate: timestamp('start_date', { withTimezone: true }).notNull(),
     endDate: timestamp('end_date', { withTimezone: true }).notNull(),
     isCurrent: boolean('is_current').default(false).notNull(),
@@ -239,7 +240,7 @@ export const academicYears = pgTable(
   ]
 );
 
-// Campus Locations (PRD SET-06: Geofence for staff selfie attendance)
+// Campus Locations (SET-06)
 export const campusLocations = pgTable(
   'campus_locations',
   {
@@ -261,6 +262,273 @@ export const campusLocations = pgTable(
   ]
 );
 
+// Classes / Courses (SET-02: School Class / College Course)
+export const classes = pgTable(
+  'classes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(), // e.g. "Class 10", "B.Tech CSE"
+    code: varchar('code', { length: 50 }).notNull(),
+    departmentId: uuid('department_id').references(() => departments.id),
+    academicYearId: uuid('academic_year_id').references(() => academicYears.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('idx_classes_institute_id').on(table.instituteId),
+    uniqueIndex('idx_classes_inst_code').on(table.instituteId, table.code),
+  ]
+);
+
+// Sections (SET-02: School / College Section)
+export const sections = pgTable(
+  'sections',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    classId: uuid('class_id')
+      .references(() => classes.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 50 }).notNull(), // e.g. "Section A", "Section B"
+    capacity: integer('capacity').default(40).notNull(),
+    roomNumber: varchar('room_number', { length: 50 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('idx_sections_institute_id').on(table.instituteId),
+    index('idx_sections_class_id').on(table.instituteId, table.classId),
+  ]
+);
+
+// Batches (SET-02: Coaching Batches)
+export const batches = pgTable(
+  'batches',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(), // e.g. "JEE Advanced Target 2027 Morning"
+    code: varchar('code', { length: 50 }).notNull(),
+    capacity: integer('capacity').default(60).notNull(),
+    academicYearId: uuid('academic_year_id').references(() => academicYears.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('idx_batches_institute_id').on(table.instituteId),
+    uniqueIndex('idx_batches_inst_code').on(table.instituteId, table.code),
+  ]
+);
+
+// Subjects (SET-02)
+export const subjects = pgTable(
+  'subjects',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(), // e.g. "Physics", "Mathematics"
+    code: varchar('code', { length: 50 }).notNull(),
+    departmentId: uuid('department_id').references(() => departments.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('idx_subjects_institute_id').on(table.instituteId),
+    uniqueIndex('idx_subjects_inst_code').on(table.instituteId, table.code),
+  ]
+);
+
+// Students (STU-01..06)
+export const students = pgTable(
+  'students',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    admissionNo: varchar('admission_no', { length: 64 }).notNull(),
+    rollNo: varchar('roll_no', { length: 64 }),
+    fullName: varchar('full_name', { length: 255 }).notNull(),
+    gender: varchar('gender', { length: 16 }),
+    dob: timestamp('dob', { withTimezone: true }),
+    bloodGroup: varchar('blood_group', { length: 10 }),
+    status: varchar('status', { length: 32 }).default('active').notNull(), // active, inactive, alumni, transferred, dropped
+    classId: uuid('class_id').references(() => classes.id),
+    sectionId: uuid('section_id').references(() => sections.id),
+    batchId: uuid('batch_id').references(() => batches.id),
+    parentName: varchar('parent_name', { length: 255 }).notNull(),
+    parentPhone: varchar('parent_phone', { length: 20 }).notNull(),
+    parentEmail: varchar('parent_email', { length: 255 }),
+    address: text('address'),
+    medicalNotes: text('medical_notes'),
+    photoUrl: text('photo_url'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('idx_students_institute_id').on(table.instituteId),
+    uniqueIndex('idx_students_admission_no').on(table.instituteId, table.admissionNo),
+    index('idx_students_class_section').on(table.instituteId, table.classId, table.sectionId),
+    index('idx_students_status').on(table.instituteId, table.status),
+  ]
+);
+
+// Staff profiles (STF-01)
+export const staff = pgTable(
+  'staff',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    employeeCode: varchar('employee_code', { length: 64 }).notNull(),
+    designation: varchar('designation', { length: 100 }).notNull(), // e.g. "Senior PGT Physics", "HOD"
+    departmentId: uuid('department_id').references(() => departments.id),
+    joiningDate: timestamp('joining_date', { withTimezone: true }).notNull(),
+    qualification: varchar('qualification', { length: 255 }),
+    bankDetailsEncrypted: text('bank_details_encrypted'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('idx_staff_institute_id').on(table.instituteId),
+    uniqueIndex('idx_staff_emp_code').on(table.instituteId, table.employeeCode),
+  ]
+);
+
+// Teaching Assignments (STF-04: teacher <-> subject <-> class/section/batch)
+export const teachingAssignments = pgTable(
+  'teaching_assignments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    staffId: uuid('staff_id').references(() => staff.id, { onDelete: 'cascade' }).notNull(),
+    subjectId: uuid('subject_id').references(() => subjects.id, { onDelete: 'cascade' }).notNull(),
+    classId: uuid('class_id').references(() => classes.id),
+    sectionId: uuid('section_id').references(() => sections.id),
+    batchId: uuid('batch_id').references(() => batches.id),
+    academicYearId: uuid('academic_year_id').references(() => academicYears.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_teaching_assign_inst').on(table.instituteId),
+    index('idx_teaching_assign_staff').on(table.instituteId, table.staffId),
+  ]
+);
+
+// Leave Types (STF-03)
+export const leaveTypes = pgTable(
+  'leave_types',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(), // e.g. "Casual Leave", "Sick Leave"
+    daysAllowed: integer('days_allowed').notNull(),
+    isPaid: boolean('is_paid').default(true).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_leave_types_inst').on(table.instituteId),
+  ]
+);
+
+// Leave Requests (STF-03)
+export const leaveRequests = pgTable(
+  'leave_requests',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    staffId: uuid('staff_id').references(() => staff.id, { onDelete: 'cascade' }).notNull(),
+    leaveTypeId: uuid('leave_type_id').references(() => leaveTypes.id).notNull(),
+    startDate: timestamp('start_date', { withTimezone: true }).notNull(),
+    endDate: timestamp('end_date', { withTimezone: true }).notNull(),
+    reason: text('reason').notNull(),
+    status: varchar('status', { length: 32 }).default('pending').notNull(), // pending, approved, rejected
+    reviewedBy: uuid('reviewed_by'),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_leave_req_inst').on(table.instituteId),
+    index('idx_leave_req_staff').on(table.instituteId, table.staffId),
+  ]
+);
+
+// Inquiries / Leads CRM (ADM-02)
+export const inquiries = pgTable(
+  'inquiries',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    studentName: varchar('student_name', { length: 255 }).notNull(),
+    parentName: varchar('parent_name', { length: 255 }).notNull(),
+    parentPhone: varchar('parent_phone', { length: 20 }).notNull(),
+    parentEmail: varchar('parent_email', { length: 255 }),
+    gradeApplyingFor: varchar('grade_applying_for', { length: 100 }).notNull(),
+    source: varchar('source', { length: 50 }).default('direct').notNull(),
+    status: varchar('status', { length: 32 }).default('new').notNull(), // new, contacted, demo_visit, applied, admitted, lost
+    assignedStaffId: uuid('assigned_staff_id'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_inquiries_inst').on(table.instituteId),
+    index('idx_inquiries_status').on(table.instituteId, table.status),
+  ]
+);
+
+// Public Student Admission Applications (ADM-01, ADM-03, ADM-05)
+export const studentApplications = pgTable(
+  'student_applications',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    instituteId: uuid('institute_id')
+      .references(() => institutes.id, { onDelete: 'cascade' })
+      .notNull(),
+    applicationNo: varchar('application_no', { length: 64 }).notNull(),
+    studentName: varchar('student_name', { length: 255 }).notNull(),
+    dob: timestamp('dob', { withTimezone: true }).notNull(),
+    gender: varchar('gender', { length: 16 }).notNull(),
+    parentName: varchar('parent_name', { length: 255 }).notNull(),
+    parentPhone: varchar('parent_phone', { length: 20 }).notNull(),
+    parentEmail: varchar('parent_email', { length: 255 }).notNull(),
+    gradeApplyingFor: varchar('grade_applying_for', { length: 100 }).notNull(),
+    address: text('address'),
+    status: varchar('status', { length: 32 }).default('pending').notNull(), // pending, approved, rejected
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_student_apps_inst').on(table.instituteId),
+    uniqueIndex('idx_student_apps_no').on(table.instituteId, table.applicationNo),
+  ]
+);
+
 // Immutable Tenant Audit Log (PRD CC-05, ISO-05)
 export const auditLog = pgTable(
   'audit_log',
@@ -270,7 +538,7 @@ export const auditLog = pgTable(
       .references(() => institutes.id, { onDelete: 'cascade' })
       .notNull(),
     userId: uuid('user_id'),
-    action: varchar('action', { length: 100 }).notNull(), // e.g. 'attendance.marked', 'fees.collected'
+    action: varchar('action', { length: 100 }).notNull(),
     entityType: varchar('entity_type', { length: 64 }).notNull(),
     entityId: varchar('entity_id', { length: 64 }).notNull(),
     diff: jsonb('diff').$type<{
